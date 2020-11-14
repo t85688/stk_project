@@ -1,0 +1,41 @@
+version: v1.0
+name: Initial Pipeline
+agent:
+  machine:
+    type: e1-standard-2
+    os_image: ubuntu1804
+blocks:
+  - name: Build
+    task:
+      jobs:
+        - name: Build
+          commands:
+            - checksem-version python 3.7
+            - checkout
+            - mkdir .pip_cache
+            - cache restore
+            - pip install --cache-dir .pip_cache -r requirements.txt
+            - cache storeout
+  - name: Test
+    task:
+      prologue:
+        commands:
+          - sem-version python 3.7
+          - checkout
+          - cache restore
+          - pip install --cache-dir .pip_cache -r requirements.txt
+      jobs:
+        - name: Unit test
+          commands:
+            - cd stk_proj
+            - python manage.py makemigrations
+            - python manage.py migrate
+            - python manage.py test
+        - name: Checklist
+          commands:
+            - cd stk_proj
+            - python manage.py check --deploy
+        - name: Style check
+          commands:
+            - pip install flake8
+            - flake8 stk_proj --max-line-length=127
